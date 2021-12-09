@@ -131,8 +131,12 @@ class CorsMiddleware(MiddlewareMixin):
         Add the respective CORS headers
         """
         logger.info('process_responseが呼ばれた')
+        logger.info(f'CORS_ALLOW_ALL_ORIGINS? {conf.CORS_ALLOW_ALL_ORIGINS}')
+        logger.info(f'origin_found_in_white_lists? {self.origin_found_in_white_lists(origin, url)}')
+        logger.info(f'check_signal? {self.check_signal(request)}')
         enabled = getattr(request, "_cors_enabled", None)
         if enabled is None:
+            logger.info('URL単位のCORS許可設定がNoneなので再度確認')
             enabled = self.is_enabled(request)
 
         if not enabled:
@@ -157,9 +161,6 @@ class CorsMiddleware(MiddlewareMixin):
             logger.info('Access-Control-Allow-Credentialsをtrueに設定する')
             response[ACCESS_CONTROL_ALLOW_CREDENTIALS] = "true"
 
-        logger.info(f'CORS_ALLOW_ALL_ORIGINS? {conf.CORS_ALLOW_ALL_ORIGINS}')
-        logger.info(f'origin_found_in_white_lists? {self.origin_found_in_white_lists(origin, url)}')
-        logger.info(f'check_signal? {self.check_signal(request)}')
         if (
             not conf.CORS_ALLOW_ALL_ORIGINS
             and not self.origin_found_in_white_lists(origin, url)
@@ -182,11 +183,13 @@ class CorsMiddleware(MiddlewareMixin):
             )
 
         if request.method == "OPTIONS":
+            logger.info('preflightリクエストなので、ALLOW_HEADERS, ALLOW_METHODSを設定')
             response[ACCESS_CONTROL_ALLOW_HEADERS] = ", ".join(conf.CORS_ALLOW_HEADERS)
             response[ACCESS_CONTROL_ALLOW_METHODS] = ", ".join(conf.CORS_ALLOW_METHODS)
             if conf.CORS_PREFLIGHT_MAX_AGE:
                 response[ACCESS_CONTROL_MAX_AGE] = str(conf.CORS_PREFLIGHT_MAX_AGE)
 
+        logger.info('response確定して返却')
         return response
 
     def origin_found_in_white_lists(self, origin: str, url: ParseResult) -> bool:
