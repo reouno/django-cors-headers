@@ -87,21 +87,26 @@ class CorsMiddleware(MiddlewareMixin):
         view/exception middleware along with the requested view;
         it will call any response middlewares
         """
+        logger.info(f'リクエストヘッダー: {request.META}')
         # URL単位でのチェック（デフォルトでは全て許可）
         request._cors_enabled = self.is_enabled(request)
         logger.info(f'このエンドポイントでCORSを許可する？ {request._cors_enabled}')
 
         if request._cors_enabled:
             if conf.CORS_REPLACE_HTTPS_REFERER:  # デフォルト: False
+                logger.info('refererを書き換える')
                 self._https_referer_replace(request)
 
             if (
                 request.method == "OPTIONS"
                 and "HTTP_ACCESS_CONTROL_REQUEST_METHOD" in request.META
             ):
+                logger.info('preflightリクエストにレスポンス返す')
                 response = HttpResponse()
                 response["Content-Length"] = "0"
                 return response
+
+        logger.info('preflightリクエストじゃないのでここではレスポンス返さない')
         return None
 
     def process_view(
