@@ -138,7 +138,7 @@ class CorsMiddleware(MiddlewareMixin):
 
         if not enabled:
             logger.info('このエンドポイントでCORSを許可しないでレスポンス返す')
-        return response
+            return response
 
         # PC/モバイルで表示を分ける場合のシグナル（今回は関係ない）
         patch_vary_headers(response, ["Origin"])
