@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Any, Optional
 from urllib.parse import ParseResult, urlparse
@@ -15,6 +16,8 @@ ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials"
 ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers"
 ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods"
 ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age"
+
+logger = logging.getLogger('django')
 
 
 class CorsPostCsrfMiddleware(MiddlewareMixin):
@@ -84,9 +87,12 @@ class CorsMiddleware(MiddlewareMixin):
         view/exception middleware along with the requested view;
         it will call any response middlewares
         """
+        # URL単位でのチェック（デフォルトでは全て許可）
         request._cors_enabled = self.is_enabled(request)
+        logger.info(f'このエンドポイントでCORSを許可する？ {request._cors_enabled}')
+
         if request._cors_enabled:
-            if conf.CORS_REPLACE_HTTPS_REFERER:
+            if conf.CORS_REPLACE_HTTPS_REFERER:  # デフォルト: False
                 self._https_referer_replace(request)
 
             if (
@@ -123,35 +129,47 @@ class CorsMiddleware(MiddlewareMixin):
             enabled = self.is_enabled(request)
 
         if not enabled:
-            return response
+            logger.info('このエンドポイントでCORSを許可しないでレスポンス返す')
+        return response
 
+        # PC/モバイルで表示を分ける場合のシグナル（今回は関係ない）
         patch_vary_headers(response, ["Origin"])
 
         origin = request.META.get("HTTP_ORIGIN")
         if not origin:
+            logger.info('originが設定されていないのでCORSを許可せずにレスポンスを返す')
             return response
 
         try:
             url = urlparse(origin)
         except ValueError:
+            logger.info(f'origin({origin})はURLとして正しくないのでCORSを許可せずにレスポンスを返す')
             return response
 
         if conf.CORS_ALLOW_CREDENTIALS:
+            logger.info('Access-Control-Allow-Credentialsをtrueに設定する')
             response[ACCESS_CONTROL_ALLOW_CREDENTIALS] = "true"
 
+        logger.info(f'CORS_ALLOW_ALL_ORIGINS? {conf.CORS_ALLOW_ALL_ORIGINS}')
+        logger.info(f'origin_found_in_white_lists? {self.origin_found_in_white_lists(origin, url)}')
+        logger.info(f'check_signal? {self.check_signal(request)}')
         if (
             not conf.CORS_ALLOW_ALL_ORIGINS
             and not self.origin_found_in_white_lists(origin, url)
             and not self.check_signal(request)
         ):
+            logger.info('全オリジン許可でない AND オリジンがホワイトリストにない AND シグナルでもない のでCORS許可せず返却')
             return response
 
         if conf.CORS_ALLOW_ALL_ORIGINS and not conf.CORS_ALLOW_CREDENTIALS:
+            logger.info('全オリジン許可 AND Credential未許可 なのでACCESS_CONTROL_ALLOW_ORIGINを * にする')
             response[ACCESS_CONTROL_ALLOW_ORIGIN] = "*"
         else:
+            logger.info(f'(全オリジン許可 AND Credential未許可) でないなのでACCESS_CONTROL_ALLOW_ORIGINを {origin} にする')
             response[ACCESS_CONTROL_ALLOW_ORIGIN] = origin
 
         if len(conf.CORS_EXPOSE_HEADERS):
+            logger.info('CORS_EXPOSE_HEADERSが設定されているのでレスポンスヘッダーにも設定する')
             response[ACCESS_CONTROL_EXPOSE_HEADERS] = ", ".join(
                 conf.CORS_EXPOSE_HEADERS
             )
@@ -165,11 +183,17 @@ class CorsMiddleware(MiddlewareMixin):
         return response
 
     def origin_found_in_white_lists(self, origin: str, url: ParseResult) -> bool:
-        return (
+        logger.info('以下のいずれかがTrueであれば、ホワイトリストに入っているとみなされる')
+        logger.info(f'    (origin == "null" and origin in conf.CORS_ALLOWED_ORIGINS)? {origin == "null" and origin in conf.CORS_ALLOWED_ORIGINS}')
+        logger.info(f'    self._url_in_whitelist(url)? {self._url_in_whitelist(url)}')
+        logger.info(f'    self.regex_domain_match(origin)? {self.regex_domain_match(origin)}')
+        result = (
             (origin == "null" and origin in conf.CORS_ALLOWED_ORIGINS)
             or self._url_in_whitelist(url)
             or self.regex_domain_match(origin)
         )
+        logger.info(f'    最終的な判定: {result}')
+        return result
 
     def regex_domain_match(self, origin: str) -> bool:
         return any(
@@ -178,6 +202,9 @@ class CorsMiddleware(MiddlewareMixin):
         )
 
     def is_enabled(self, request: HttpRequest) -> bool:
+        """URLパス単位でCORSを許可するかどうか制御する
+        デフォルトでは全てのパスを許可する
+        """
         return bool(
             re.match(conf.CORS_URLS_REGEX, request.path_info)
         ) or self.check_signal(request)
