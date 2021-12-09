@@ -190,6 +190,7 @@ class CorsMiddleware(MiddlewareMixin):
                 response[ACCESS_CONTROL_MAX_AGE] = str(conf.CORS_PREFLIGHT_MAX_AGE)
 
         logger.info('response確定して返却')
+        logger.info(f'レスポンスヘッダー: {response.headers}')
         return response
 
     def origin_found_in_white_lists(self, origin: str, url: ParseResult) -> bool:
