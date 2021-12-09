@@ -17,7 +17,7 @@ ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers"
 ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods"
 ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age"
 
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 class CorsPostCsrfMiddleware(MiddlewareMixin):
