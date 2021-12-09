@@ -131,9 +131,6 @@ class CorsMiddleware(MiddlewareMixin):
         Add the respective CORS headers
         """
         logger.info('process_responseが呼ばれた')
-        logger.info(f'CORS_ALLOW_ALL_ORIGINS? {conf.CORS_ALLOW_ALL_ORIGINS}')
-        logger.info(f'origin_found_in_white_lists? {self.origin_found_in_white_lists(origin, url)}')
-        logger.info(f'check_signal? {self.check_signal(request)}')
         enabled = getattr(request, "_cors_enabled", None)
         if enabled is None:
             logger.info('URL単位のCORS許可設定がNoneなので再度確認')
@@ -161,6 +158,9 @@ class CorsMiddleware(MiddlewareMixin):
             logger.info('Access-Control-Allow-Credentialsをtrueに設定する')
             response[ACCESS_CONTROL_ALLOW_CREDENTIALS] = "true"
 
+        logger.info(f'CORS_ALLOW_ALL_ORIGINS? {conf.CORS_ALLOW_ALL_ORIGINS}')
+        logger.info(f'origin_found_in_white_lists? {self.origin_found_in_white_lists(origin, url)}')
+        logger.info(f'check_signal? {self.check_signal(request)}')
         if (
             not conf.CORS_ALLOW_ALL_ORIGINS
             and not self.origin_found_in_white_lists(origin, url)
