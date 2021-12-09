@@ -87,6 +87,7 @@ class CorsMiddleware(MiddlewareMixin):
         view/exception middleware along with the requested view;
         it will call any response middlewares
         """
+        logger.info('process_requestが呼ばれた')
         logger.info(f'リクエストヘッダー: {request.META}')
         # URL単位でのチェック（デフォルトでは全て許可）
         request._cors_enabled = self.is_enabled(request)
@@ -129,6 +130,7 @@ class CorsMiddleware(MiddlewareMixin):
         """
         Add the respective CORS headers
         """
+        logger.info('process_responseが呼ばれた')
         enabled = getattr(request, "_cors_enabled", None)
         if enabled is None:
             enabled = self.is_enabled(request)
