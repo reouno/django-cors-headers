@@ -130,14 +130,14 @@ class CorsMiddleware(MiddlewareMixin):
         """
         Add the respective CORS headers
         """
-        logger.info('process_responseが呼ばれた')
+        logger.info(f'process_responseが呼ばれた: {request.META["PATH_INFO"]}')
         enabled = getattr(request, "_cors_enabled", None)
         if enabled is None:
             logger.info('URL単位のCORS許可設定がNoneなので再度確認')
             enabled = self.is_enabled(request)
 
         if not enabled:
-            logger.info('このエンドポイントでCORSを許可しないでレスポンス返す')
+            logger.info(f'このエンドポイントでCORSを許可しないでレスポンス返す: {request.META["PATH_INFO"]}')
             return response
 
         # PC/モバイルで表示を分ける場合のシグナル（今回は関係ない）
@@ -145,13 +145,13 @@ class CorsMiddleware(MiddlewareMixin):
 
         origin = request.META.get("HTTP_ORIGIN")
         if not origin:
-            logger.info('originが設定されていないのでCORSを許可せずにレスポンスを返す')
+            logger.info(f'originが設定されていないのでCORSを許可せずにレスポンスを返す: {request.META["PATH_INFO"]}')
             return response
 
         try:
             url = urlparse(origin)
         except ValueError:
-            logger.info(f'origin({origin})はURLとして正しくないのでCORSを許可せずにレスポンスを返す')
+            logger.info(f'origin({origin})はURLとして正しくないのでCORSを許可せずにレスポンスを返す: {request.META["PATH_INFO"]}')
             return response
 
         if conf.CORS_ALLOW_CREDENTIALS:
@@ -166,7 +166,7 @@ class CorsMiddleware(MiddlewareMixin):
             and not self.origin_found_in_white_lists(origin, url)
             and not self.check_signal(request)
         ):
-            logger.info('全オリジン許可でない AND オリジンがホワイトリストにない AND シグナルでもない のでCORS許可せず返却')
+            logger.info(f'全オリジン許可でない AND オリジンがホワイトリストにない AND シグナルでもない のでCORS許可せず返却: {request.META["PATH_INFO"]}')
             return response
 
         if conf.CORS_ALLOW_ALL_ORIGINS and not conf.CORS_ALLOW_CREDENTIALS:
@@ -190,7 +190,7 @@ class CorsMiddleware(MiddlewareMixin):
                 response[ACCESS_CONTROL_MAX_AGE] = str(conf.CORS_PREFLIGHT_MAX_AGE)
 
         logger.info('response確定して返却')
-        logger.info(f'レスポンスヘッダー: {response.headers}')
+        logger.info(f'レスポンスヘッダー: {response.headers}: {request.META["PATH_INFO"]}')
         return response
 
     def origin_found_in_white_lists(self, origin: str, url: ParseResult) -> bool:
